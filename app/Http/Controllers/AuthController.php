@@ -13,12 +13,18 @@ use Illuminate\Support\Facades\DB;
 use App\Models\RefreshToken;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerifyCode;
+use App\Repositories\RefreshTokenRepository;
 
 class AuthController extends Controller
 {
     /**
      * Register a new user.
      */
+    private $refreshTokenRepository;
+    public function __construct(RefreshTokenRepository $refreshTokenRepository)
+    {
+        $this->refreshTokenRepository = $refreshTokenRepository;
+    }
     public function post_register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -131,7 +137,7 @@ class AuthController extends Controller
     /**
      * Authenticate a user and return a token.
      */
-    public function get_login(Request $request)
+    public function login(Request $request)
     {
         return response()->json([
             'success' => false,
@@ -158,7 +164,12 @@ class AuthController extends Controller
 
         // Try to find the user by email
         $user = User::where('email', $credentials['email'])->first();
-
+        if ($user->email_verified == false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email not verified'
+            ], 401);
+        }
         if (!$user || !Hash::check($credentials['password'], $user->password_hash)) {
             // Password doesn't match or user doesn't exist
             return response()->json([
@@ -181,43 +192,13 @@ class AuthController extends Controller
                 'message' => 'Could not create token'
             ], 500);
         }
-        $refreshToken = null;
-        if ($user->refreshTokens()->first() == null) {
-            $refreshToken = $this->generateRefreshToken($user);
-        } else if ($user->refreshTokens()->first()->expires_at <= now()) {
-            $user->refreshTokens()->delete();
-            $refreshToken = $this->generateRefreshToken($user);
-        } else {
-            $refreshToken = $user->refreshTokens()->first()->token;
-        }
+        $refreshToken = $this->refreshTokenRepository->generateRefreshTokenForUser($user);
+
         // Return the success response with the token and user data
         return response()->json([
             'success' => true,
             'access_token' => $token,
             'refresh_token' => $refreshToken,
         ]);
-    }
-
-    protected function generateRefreshToken(User $user)
-    {
-        // Generate 12 bytes of random data (96 bits)
-        $randomBytes = random_bytes(12);
-
-        // Convert to Base64, remove padding, make URL-safe, and truncate to 16 characters
-        $refreshToken = substr(
-            str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($randomBytes)),
-            0,
-            16
-        );
-        // Store unhashed token in the database
-        $user->refreshTokens()->create([
-            'token' => $refreshToken, // 16-character Base64URL
-            'expires_at' => now()->addDay(7),
-            'revoked' => false,
-            'user_id' => $user->user_id,
-        ]);
-
-        // Return the token to the client
-        return $refreshToken;
     }
 }

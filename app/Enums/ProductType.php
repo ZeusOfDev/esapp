@@ -1,5 +1,5 @@
-<php?
-namespace App\Helper;
+<?php
+namespace App\Enums;
 enum ProductType: string {
     case COMPUTING = 'computing';
     case MOBILE = 'mobile';

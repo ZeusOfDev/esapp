@@ -1,7 +1,7 @@
 <?php
-namespace app\Repositories\UserRepository;
+namespace App\Repositories;
 use App\Models;
-use app\Repositories\IUserRepository\IUserRepository;
+use App\Repositories\IUserRepository;
 use Illuminate\Support\Facades\DB;
 class UserRepository implements IUserRepository
 {

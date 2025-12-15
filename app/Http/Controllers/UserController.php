@@ -3,108 +3,72 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Cart;
-use App\Models\CartItem;
+use App\Models\Promotion;
 
 class UserController extends Controller
 {
-    public function cart(Request $request) {}
-    public function addItem(Request $request)
-    {
-        // Validate the request
-        $validated = $request->validate([
-            'product_id' => 'required',
-            'variant_id' => 'required',
-            'quantity' => 'required|integer|min:1',
-        ]);
-
-        // Get the authenticated user
-        $user = $request->user();
-
-        // Find or create the cart for the user
-        $cart = Cart::where('user_id', $user->id)->first();
-        // Check if the item (product_id and variant_id) already exists in the cart
-        $cartItem = CartItem::where([
-            'cart_id' => $cart->cart_id,
-            'product_id' => $validated['product_id'],
-            'variant_id' => $validated['variant_id'],
-        ])->first();
-
-        if ($cartItem) {
-            // Update quantity if item exists
-            $cartItem->update([
-                'quantity' => $cartItem->quantity + $validated['quantity'],
-            ]);
-        } else {
-            // Create new cart item
-            CartItem::create([
-                'cart_id' => $cart->cart_id,
-                'product_id' => $validated['product_id'],
-                'variant_id' => $validated['variant_id'],
-                'quantity' => $validated['quantity'],
-                'added_at' => now(),
-            ]);
-        }
-
-        // API response
-        return response()->json([
-            'message' => 'Item added to cart',
-            'product_id' => $validated['product_id'],
-            'variant_id' => $validated['variant_id'],
-            'quantity' => $validated['quantity']
-        ]);
-    }
-
-    public function removeFromCart(Request $request) {
-        $validated = $request->validate([
-            'cart_item_id' => 'required',
-        ]);
-
-        $cartItem = CartItem::where('cart_item_id', $validated['cart_item_id'])->first();
-        if (!$cartItem) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cart item not found.'
-            ], 404);    
-        }
-
-        $cartItem->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cart item removed successfully.'
-        ]);
-    }
-    public function updateCartItem(Request $request) 
-    {
-        $validated = $request->validate([
-            'cart_item_id' => 'required',
-            'quantity' => 'required',                 
-        ]);
-        $cartItem = CartItem::where('cart_item_id', $validated['cart_item_id'])->first();
-        if (!$cartItem) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cart item not found.'
-            ], 404);    
-        }
-
-        // Update the cart item quantity
-        $cartItem->update([
-            'quantity' => $validated['quantity'],
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Cart item updated successfully.',
-            'data' => $cartItem,
-        ]);
-    }
     public function user(Request $request)
     {
         return response()->json([
             'success' => true,
             'data' => $request->user(),
+        ]);
+    }
+    public function redeemPoints(Request $request) {
+        $validated = $request->validate([
+            'points' => 'required|integer|min:100',
+        ]);
+
+        $user = $request->user();
+        if ($user->reward_points < $validated['points']) {
+            return response()->json ([
+                'success' => false,
+                'message' => 'Insufficient reward points.'
+            ], 400);
+        }
+        
+        $user->reward_points -= $validated['points'];
+        
+        $promotion = Promotion::create([
+            'promotion_code' => 'RD' . strtoupper(bin2hex(random_bytes(4))),
+            'description' => 'Redeemed promotion',
+            'discount_type' => 'fixed_amount',
+            'discount_value' => $validated['points'] / 100, 
+            'start_date' => now(),
+            'end_date' => now()->addMonth(),
+            
+            'usage_limit' => 1,
+        ]);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Points redeemed successfully.',
+            'remaining_points' => $user->reward_points,
+            'promotion_code' => $promotion->promotion_code,
+            'discount_value' => $promotion->discount_value,
+        ]);
+    }
+    public function buyVip(Request $request) {
+        $user = $request->user();
+        $vipCost = 144; 
+
+        if ($user->reward_points < $vipCost * 100) {
+            return response()->json ([
+                'success' => false,
+                'message' => 'Insufficient reward points to buy VIP status.'
+            ], 400);
+        }
+
+        $user->reward_points -= $vipCost * 100;
+        $user->member_tier_id = 4;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'VIP status purchased successfully.',
+            'remaining_points' => $user->reward_points,
+            'vip_expiration' => $user->vip_expiration
         ]);
     }
 }

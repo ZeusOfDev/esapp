@@ -1,15 +1,22 @@
 <?php
 
 
-namespace app\Repositories\CategoryRepository;
+namespace App\Repositories;
+
 use App\Models;
-use app\Repositories\ICategoryRepository\ICategoryRepository;
+use App\Repositories\ICategoryRepository;
 use Illuminate\Support\Facades\DB;
-class CategoryRepository
+
+class CategoryRepository implements ICategoryRepository
 {
-    public function getCategoryInfoBySlug(string $slug) 
+    public function getCategoryInfoBySlug(string $slug)
     {
-        $result = DB::select('SELECT category_name, image_url FROM products WHERE slug = :slug', ['slug',$slug]);
+        $result = DB::select('SELECT category_name, image_url FROM categories WHERE slug = :slug', ['slug', $slug]);
+        return $result;
+    }
+    public function getAllChildSlug()
+    {
+        $result = DB::select('SELECT category_name, image_url FROM categories WHERE parent_id IS NOT NULL');
         return $result;
     }
 }

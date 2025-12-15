@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id('user_id'); // Primary key with AUTO_INCREMENT
             $table->string('email', 255)->unique();
-            $table->string('password_hash', 255);
+            $table->string('password_hash', 255)->nullable();
             $table->string('full_name', 100)->nullable(); // NVARCHAR equivalent
             $table->string('phone', 20)->nullable();
             $table->string('avatar_url', 500)->nullable();

@@ -4,16 +4,19 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
-use app\Repositories\CartRepository\CartRepository;
-use app\Repositories\OrderRepository\OrderRepository;
-use app\Repositories\ProductRepository\ProductRepository;
-use app\Repositories\CategoryRepository\CategoryRepository;             
-use app\Repositories\ManagerRepository\ManagerRepository;   
-use app\Repositories\IOrderRepository\IOrderRepository;
-use app\Repositories\ICartRepository\ICartRepository;   
-use app\Repositories\IProductRepository\IProductRepository;
-use app\Repositories\ICategoryRepository\ICategoryRepository;
-use app\Repositories\IManagerRepository\IManagerRepository;
+use App\Repositories\CartRepository;
+use App\Repositories\OrderRepository;
+use App\Repositories\ProductRepository;
+use App\Repositories\CategoryRepository;
+use App\Repositories\ManagerRepository;
+use App\Repositories\IOrderRepository;
+use App\Repositories\ICartRepository;
+use App\Repositories\IProductRepository;
+use App\Repositories\ICategoryRepository;
+use App\Repositories\IManagerRepository;
+use App\Repositories\IPromotionRepository;
+use App\Repositories\PromotionRepository;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -21,10 +24,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(IOrderRepository::class, OrderRepository::class);
         $this->app->bind(ICartRepository::class, CartRepository::class);
         $this->app->bind(IProductRepository::class, ProductRepository::class);
         $this->app->bind(ICategoryRepository::class, CategoryRepository::class);
+        $this->app->bind(IPromotionRepository::class, PromotionRepository::class);
     }
 
     /**

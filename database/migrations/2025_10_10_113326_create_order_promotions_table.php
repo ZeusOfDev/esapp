@@ -14,11 +14,7 @@ return new class extends Migration
             $table->unsignedBigInteger('order_id');
             $table->unsignedBigInteger('promotion_id');
             $table->decimal('discount_applied', 15, 2);
-
-
             $table->primary(['order_id', 'promotion_id']);
-
-
             $table->foreign('order_id')->references('order_id')->on('orders')->onDelete('cascade');
             $table->foreign('promotion_id')->references('promotion_id')->on('promotions');
         });
